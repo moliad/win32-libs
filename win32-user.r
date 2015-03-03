@@ -128,13 +128,54 @@ slim/register [
 	IDTRYAGAIN: 10
 	IDYES: 6
 	
+	
+	;-                                                                                                       .
+	;-----------------------------------------------------------------------------------------------------------
+	;
+	;- STRUCTS
+	;
+	;-----------------------------------------------------------------------------------------------------------
+	
+	;--------------------------
+	;-     RECT [ ... ]
+	;--------------------------
+	!RECT: [
+		left	[integer!]
+		top		[integer!]
+		right	[integer!]
+		bottom	[integer!]
+	] 
+	
+	
 
+	;-                                                                                                       .
 	;-----------------------------------------------------------------------------------------------------------
 	;
 	;- STUB ROUTINES
 	;
+	; (in alphabetical order)
 	;-----------------------------------------------------------------------------------------------------------
 	
+	;--------------------------
+	;-     FindWindow()
+	;--------------------------
+	FindWindow: make routine! [
+		lpClassName  [integer!]   ; DO NOT USE (address of string of Windows Registered Class Name )
+		lpWindowName [string!]    ; string of window title
+		return:		 [integer!]   ; pointer to an HWnd
+	] user32.dll "FindWindowA"
+	
+	;--------------------------
+	;-     GetWindowRect()
+	;--------------------------
+	GetWindowRect: make routine! compose/only/deep [
+		hWnd [integer!]
+		lpRect [struct! (!RECT)]
+	] user32.dll "GetWindowRect"
+	
+	;--------------------------
+	;-     MessageBox()
+	;--------------------------
 	MessageBox: make routine! [
 		hWnd		[integer!]
 		lpText		[string!]
@@ -142,11 +183,36 @@ slim/register [
 		uType		[integer!]
 		return: 	[integer!]
 	] user32.dll "MessageBoxA"
-
-
+	
+	;--------------------------
+	;-     MoveWindow()
+	;--------------------------
+	MoveWindow: make routine! [
+		hWnd		[integer!]
+		x			[integer!]
+		y			[integer!]
+		w			[integer!]
+		h			[integer!]
+		repaint 	[integer!]
+		return: 	[integer!]
+	] user32.dll "MoveWindow"
+	
+	;--------------------------
+	;-     SetWindowText()
+	;--------------------------
+	SetWindowText: make routine! [
+		hWnd		[integer!]
+		lpString	[string!]
+		return: 	[integer!]
+	] user32.dll "SetWindowTextA"
+	
+	
+	
+	
+	;-                                                                                                       .
 	;-----------------------------------------------------------------------------------------------------------
 	;
-	;- HELPER FUNCTIONS
+	;- DIALOGS
 	;
 	;-----------------------------------------------------------------------------------------------------------
 	
@@ -205,11 +271,179 @@ slim/register [
 	][
 		vin "os-confirm()"
 		set [ rval err ] MessageBox 0 msg title  ( MB_OKCANCEL or MB_ICONEXCLAMATION or MB_SETFOREGROUND )
-		
 		vout
 		
 		(rval = 1)
 	]
 	
 
+
+	;-                                                                                                       .
+	;-----------------------------------------------------------------------------------------------------------
+	;
+	;- WINDOW MANAGEMENT
+	;
+	;-----------------------------------------------------------------------------------------------------------
+	;--------------------------
+	;-         find-window()
+	;--------------------------
+	; purpose:  Gets a window handle (as a pointer)
+	;
+	; inputs:   window title name
+	;
+	; returns:  pointer required in many other win32 calls.
+	;--------------------------
+	find-window: funcl [
+		[catch]
+		window-name [string!]
+	][
+		vin "find-window()"
+		;?? window-name
+		handle: FindWindow 0 window-name
+		;?? handle
+		if handle = 0 [
+			throw make error! rejoin [ {win32-user/find-window() no window named "} window-name {" found} ]
+		]
+		vout
+		handle
+	]
+	
+	;--------------------------
+	;-         set-window-title()
+	;--------------------------
+	; purpose:  sets the title of a window directly via win32
+	;
+	; inputs:   a window handle, and new title text
+	;
+	; returns:  success as a logic!
+	;
+	; notes:    use find-window() to get the handle
+	;
+	; to do:    
+	;
+	; tests:    
+	;--------------------------
+	set-window-title: funcl [
+		[catch]
+		hWnd [integer!]
+		new-title  [string!]
+	][
+		vin "set-window-title()"
+		; this protects agains GC
+		tdata: make struct! [[save] str [string!] ] reduce [new-title]
+		
+		SetWindowText hWnd tdata/str
+	
+		vout
+	]
+	
+	
+	
+	;--------------------------
+	;-         get-window-rect()
+	;--------------------------
+	; purpose:  
+	;
+	; inputs:   
+	;
+	; returns:  object with offset / size
+	;
+	; notes:    
+	;
+	; to do:    
+	;
+	; tests:    
+	;--------------------------
+	get-window-rect: funcl [
+		hWnd [integer!]
+	][
+		vin "get-window-rect()"
+		GetWindowRect hWnd w-rect: make struct! !RECT none
+		rect: context [
+			offset: to-pair reduce [ w-rect/left  w-rect/top ]
+			size:   to-pair reduce [ (w-rect/right - w-rect/left)  (w-rect/bottom -  w-rect/top)]
+		]
+		vout
+		rect 
+	]
+	
+	
+	;--------------------------
+	;-         move-window()
+	;--------------------------
+	; purpose:  move any window to a new position, keeping size.
+	;
+	; inputs:   
+	;
+	; returns:  
+	;
+	; notes:    
+	;
+	; to do:    
+	;
+	; tests:    
+	;--------------------------
+	move-window: funcl [
+		hWnd [integer!]
+		pos [pair!]
+		/size sz [pair!]
+	][
+		vin "move-window()"
+		coords: get-window-rect hWnd
+		;probe coords
+		
+		sz: any [
+			sz
+			coords/size
+		]
+		
+		MoveWindow hWnd pos/x pos/y sz/x sz/y 1
+		vout
+	]
+	
+	
+	
+	;-                                                                                                       .
+	;-----------------------------------------------------------------------------------------------------------
+	;
+	;- REBOL SPECIFIC APPLICATIONS OF WIN32 STUBS
+	;
+	;-----------------------------------------------------------------------------------------------------------
+	
+	
+	;--------------------------
+	;-     setup-console()
+	;--------------------------
+	; purpose:  takes the console, if opened, and moves it... if it hasn't been renamed yet.
+	;
+	; inputs:   
+	;
+	; returns:  the console's hWnd, in case you want to manipulate it again.
+	;
+	; notes:    
+	;
+	; to do:    
+	;
+	; tests:    
+	;--------------------------
+	setup-console: funcl [
+		"Allows you to manipulate the console window"
+		offset [pair!]
+		size   [pair!]
+		/title label [string!] "set console window's title title"
+	][
+		vin "setup-console()"
+		hWnd: find-window "REBOL/View"
+		move-window/size hWnd offset size
+
+		if label [
+			set-window-title hWnd label
+		]
+		vout
+		hWnd
+	]
+	
+	
+	
+	
 ]
