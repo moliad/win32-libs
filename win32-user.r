@@ -296,13 +296,18 @@ slim/register [
 	find-window: funcl [
 		[catch]
 		window-name [string!]
+		/quiet
 	][
 		vin "find-window()"
 		;?? window-name
 		handle: FindWindow 0 window-name
 		;?? handle
 		if handle = 0 [
-			throw make error! rejoin [ {win32-user/find-window() no window named "} window-name {" found} ]
+			either quiet [
+				handle: none
+			][
+				throw make error! rejoin [ {win32-user/find-window() no window named "} window-name {" found} ]
+			]
 		]
 		vout
 		handle
@@ -319,7 +324,7 @@ slim/register [
 	;
 	; notes:    use find-window() to get the handle
 	;
-	; to do:    
+	; to do:    			
 	;
 	; tests:    
 	;--------------------------
@@ -433,7 +438,12 @@ slim/register [
 		/title label [string!] "set console window's title title"
 	][
 		vin "setup-console()"
-		hWnd: find-window "REBOL/View"
+		hWnd: any [
+			find-window/quiet "REBOL/View"
+			find-window/quiet "REBOL/Pro"
+			; add other encapped distributions here
+		]
+		
 		move-window/size hWnd offset size
 
 		if label [
@@ -442,8 +452,6 @@ slim/register [
 		vout
 		hWnd
 	]
-	
-	
 	
 	
 ]
