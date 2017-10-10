@@ -624,7 +624,7 @@ slim/register [
 		                               ;
 		                               ; If this parameter is FALSE and the new file already exists, 
 		                               ; the function overwrites the existing file and succeeds.
-		return: [integer!]             
+		return: [integer!]             ; 0 if there is an error (use get-last-error)
 	] kernel32.dll "CopyFileA"
 	
 	
@@ -1274,8 +1274,13 @@ slim/register [
 	win32-Copyfile: funcl [
 		src [string!]
 		dst [string!]
+		/overwrite
 	][
-		CopyFile src dst 0
+		overwrite: either overwrite  [ 0 ][ 1 ]
+		if (rval: CopyFile src dst overwrite) = 0 [
+			err: get-last-error
+			to-error rejoin ["slim/win32-kernel.r/win32-Copyfile(): file copy (" err/code":"err/msg ")" ]
+		]
 	]
 
 
