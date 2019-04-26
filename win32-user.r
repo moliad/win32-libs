@@ -433,17 +433,21 @@ slim/register [
 	;--------------------------
 	setup-console: funcl [
 		"Allows you to manipulate the console window"
-		offset [pair!]
-		size   [pair!]
+		offset	[pair!]
+		size	[pair!]
+		/named win-title [string!]
 		/title label [string!] "set console window's title title"
 	][
 		vin "setup-console()"
+		v?? win-title
+		win-title: any [ win-title "09345 ^^34509 3**gergn" ]
 		hWnd: any [
-			find-window/quiet "REBOL/View"
+			find-window/quiet win-title
 			find-window/quiet "REBOL/Pro"
+			find-window/quiet "REBOL/View"
 			; add other encapped distributions here
 		]
-		
+		v?? hwnd
 		move-window/size hWnd offset size
 
 		if label [

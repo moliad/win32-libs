@@ -90,6 +90,19 @@ slim/register [
 	;--------------------------
 	wideCharsBeyondRange?: none
 	
+	;--------------------------
+	;-     display-extended-error-in-console?:
+	;
+	; set to true if you wish to see more details in some functions,
+	;
+	; note that this may FORCE the console to open even if vprint is set to OFF!
+	;
+	; you should only use this in console-minded applications (as you cannot close it after,
+	; which is annoying in GUI apps)
+	;--------------------------
+	display-extended-error-in-console?: false
+	
+	
 	
 
 
@@ -1265,7 +1278,7 @@ slim/register [
 
 
 	;--------------------------
-	;-         win32-Copyfile()
+	;-      win32-Copyfile()
 	;--------------------------
 	; purpose:  platform agnostic version of file copy (using os path data).
 	;
@@ -1279,7 +1292,11 @@ slim/register [
 		overwrite: either overwrite  [ 0 ][ 1 ]
 		if (rval: CopyFile src dst overwrite) = 0 [
 			err: get-last-error
-			to-error rejoin ["slim/win32-kernel.r/win32-Copyfile(): file copy (" err/code":"err/msg ")" ]
+			if display-extended-error-in-console? [
+				?? src
+				?? dst
+			]
+			to-error rejoin ["slim/win32-kernel.r/win32-Copyfile(): file copy (" err/code":"err/msg ")^/src:" src "^/dest:" dst]
 		]
 	]
 
