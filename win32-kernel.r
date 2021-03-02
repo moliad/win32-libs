@@ -623,6 +623,38 @@ slim/register [
 		return: 	[integer!]
 	] kernel32.dll "SetCurrentDirectoryA"
 
+
+	;--------------------------
+	;-     get-current-dir()
+	;--------------------------
+	; purpose:  gets OS current dir
+	;
+	; inputs:   
+	;
+	; returns:  none if an error occurs
+	;
+	; notes:    
+	;
+	; to do:    
+	;
+	; tests:    
+	;--------------------------
+	get-current-dir: funcl [
+	][
+		vin "get-current-dir()"
+		path: none
+		; create C string buffer
+		buf: clear ""
+		insert/dup buf "@" 1024 ; should be long enough for all reasonable paths on any PC
+		len: GetCurrentDirectory 1024 buf
+		
+		if len > 0 [
+			path: to-rebol-file copy/part buf len
+		] 
+		vout
+		path
+	]
+
 	
 	;--------------------------
 	;-     CopyFile()
@@ -1137,7 +1169,7 @@ slim/register [
 			
 			
 			;--------------------------------------------
-			;-      setup options
+			;-        -setup options
 			;--------------------------------------------
 			if opt [
 				details: any [ details ]
@@ -1183,7 +1215,7 @@ slim/register [
 						]
 						
 						;--------------------------------------------
-						;-      FOLDER
+						;-        -folder
 						;--------------------------------------------
 						; we don't list folders by default
 						
@@ -1206,7 +1238,7 @@ slim/register [
 						
 					][
 						;--------------------------------------------
-						;-      FILE
+						;-        -file
 						;--------------------------------------------
 						append rval to-file subpath
 
@@ -1278,7 +1310,7 @@ slim/register [
 
 
 	;--------------------------
-	;-      win32-Copyfile()
+	;-     win32-Copyfile()
 	;--------------------------
 	; purpose:  platform agnostic version of file copy (using os path data).
 	;
